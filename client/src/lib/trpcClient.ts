@@ -7,6 +7,19 @@ export const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
       url: `${API_URL}/trpc`,
+
+      // Include credentials (cookies) in requests
+      fetch(url, options) {
+        return fetch(url, {
+          ...options,
+          credentials: "include",
+        });
+      },
+
+      // Handle errors
+      async headers() {
+        return {};
+      },
     }),
   ],
 });

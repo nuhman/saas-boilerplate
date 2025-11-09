@@ -1,0 +1,324 @@
+# SaaS Boilerplate - Cursor Rules
+
+## Project Overview
+
+This is a full-stack SaaS boilerplate with React, tRPC, Fastify, Prisma, and PostgreSQL (Neon).
+
+## Tech Stack
+
+- **Frontend**: React 18 + Vite + TypeScript
+- **Backend**: Fastify + tRPC + TypeScript
+- **Database**: PostgreSQL (Neon) with Prisma ORM
+- **Styling**: Tailwind CSS + shadcn/ui components
+- **Data Fetching**: React Query (via tRPC)
+- **Validation**: Zod schemas
+
+## Project Structure
+
+```
+.
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   │   └── ui/        # shadcn/ui components (DO NOT EDIT MANUALLY)
+│   │   ├── lib/           # Utilities
+│   │   │   ├── trpc.ts    # tRPC React hooks
+│   │   │   └── trpcClient.ts
+│   │   ├── pages/         # Page components
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   └── package.json
+│
+└── server/                # Fastify backend
+    ├── prisma/
+    │   └── schema.prisma  # Database schema
+    ├── src/
+    │   ├── lib/
+    │   │   ├── context.ts # tRPC context
+    │   │   └── trpc.ts    # tRPC setup
+    │   ├── routers/       # tRPC routers
+    │   ├── schemas/       # Zod validation schemas
+    │   ├── router.ts      # Main router
+    │   └── index.ts       # Server entry
+    └── package.json
+```
+
+## Code Style & Conventions
+
+### General
+
+- Use TypeScript for all code
+- Use functional components and hooks in React
+- Prefer `const` over `let`, avoid `var`
+- Use async/await over promises chains
+- Use meaningful variable and function names
+- Add comments for complex logic
+
+### File Naming
+
+- React components: PascalCase (e.g., `UserProfile.tsx`)
+- Utilities/helpers: camelCase (e.g., `formatDate.ts`)
+- Routers: kebab-case with `.router.ts` suffix (e.g., `user.router.ts`)
+- Schemas: kebab-case with `.schema.ts` suffix (e.g., `user.schema.ts`)
+
+### Import Order
+
+1. External packages (React, etc.)
+2. Internal utilities/lib
+3. Components
+4. Types
+5. Styles
+
+## Backend Development
+
+### Creating New Features
+
+1. **Define Prisma Schema** (`server/prisma/schema.prisma`)
+   - Use `cuid()` for IDs
+   - Include `createdAt` and `updatedAt` timestamps
+   - After changes, run: `pnpm run db:push` and `pnpm run db:generate`
+
+2. **Create Zod Schemas** (`server/src/schemas/`)
+   - Create separate schemas for create, update, and query operations
+   - Use descriptive validation messages
+   - Export schemas for reuse
+
+3. **Create tRPC Router** (`server/src/routers/`)
+   - Import from `../lib/trpc` (not `../trpc`)
+   - Use `publicProcedure` for public endpoints
+   - Use `.query()` for read operations
+   - Use `.mutation()` for write operations
+   - Always validate input with Zod schemas
+
+4. **Register Router** (`server/src/router.ts`)
+   - Import the new router
+   - Add it to the `appRouter` object
+
+### tRPC Best Practices
+
+- Always use input validation with Zod
+- Use descriptive procedure names (e.g., `getAll`, `getById`, `create`, `update`, `delete`)
+- Return appropriate data structures
+- Handle errors gracefully
+- Use Prisma's type safety
+
+### Example Router Structure
+
+```typescript
+import { router, publicProcedure } from "../lib/trpc";
+import { createSchema, updateSchema, idSchema } from "../schemas/example.schema";
+
+export const exampleRouter = router({
+  getAll: publicProcedure.query(async ({ ctx }) => {
+    return ctx.prisma.example.findMany();
+  }),
+
+  getById: publicProcedure
+    .input(idSchema)
+    .query(async ({ ctx, input }) => {
+      return ctx.prisma.example.findUnique({
+        where: { id: input.id },
+      });
+    }),
+
+  create: publicProcedure
+    .input(createSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.example.create({
+        data: input,
+      });
+    }),
+
+  update: publicProcedure
+    .input(updateSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input;
+      return ctx.prisma.example.update({
+        where: { id },
+        data,
+      });
+    }),
+
+  delete: publicProcedure
+    .input(idSchema)
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.example.delete({
+        where: { id: input.id },
+      });
+    }),
+});
+```
+
+## Frontend Development
+
+### Using tRPC
+
+- Import from `@/lib/trpc`
+- Use `useQuery` for read operations
+- Use `useMutation` for write operations
+- Invalidate queries after mutations for real-time updates
+
+### Example Component Pattern
+
+```typescript
+import { trpc } from "@/lib/trpc";
+
+function ExampleComponent() {
+  const utils = trpc.useUtils();
+  
+  // Query
+  const { data, isLoading, error } = trpc.example.getAll.useQuery();
+  
+  // Mutation
+  const createMutation = trpc.example.create.useMutation({
+    onSuccess: () => {
+      utils.example.getAll.invalidate();
+    },
+  });
+
+  const handleCreate = (input: CreateInput) => {
+    createMutation.mutate(input);
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
+
+  return (
+    <div>
+      {/* Component JSX */}
+    </div>
+  );
+}
+```
+
+### UI Components
+
+- Use shadcn/ui components from `@/components/ui`
+- To add new shadcn components: `npx shadcn@latest add <component-name>`
+- Customize components in `client/src/components/ui/` if needed
+- Use Tailwind classes for styling
+
+### State Management
+
+- Use React Query (via tRPC) for server state
+- Use React hooks (useState, useReducer) for local state
+- Avoid prop drilling - consider context for deeply nested state
+
+## Database
+
+### Prisma Commands
+
+Run from `server/` directory:
+
+- `pnpm run db:push` - Push schema changes to database
+- `pnpm run db:generate` - Generate Prisma Client
+- `pnpm run db:studio` - Open Prisma Studio (GUI)
+
+### Schema Best Practices
+
+- Always include `id`, `createdAt`, `updatedAt`
+- Use appropriate field types
+- Add indexes for frequently queried fields
+- Use relations properly with `@relation`
+- Add `@@map` for custom table names if needed
+
+## Environment Variables
+
+### Server (.env)
+
+```env
+DATABASE_URL="postgresql://..."
+PORT=3000
+CLIENT_URL="http://localhost:5173"
+```
+
+### Client (.env)
+
+```env
+VITE_API_URL="http://localhost:3000"
+```
+
+## Common Patterns
+
+### Error Handling
+
+- Use try-catch in mutations
+- Return meaningful error messages
+- Handle errors in UI with error states
+
+### Loading States
+
+- Always show loading indicators
+- Use skeleton loaders for better UX
+- Handle empty states gracefully
+
+### Form Handling
+
+- Validate on client and server
+- Show validation errors clearly
+- Disable submit during mutation
+- Clear form after successful submission
+
+## Development Workflow
+
+1. Start server: `cd server && pnpm run dev`
+2. Start client: `cd client && pnpm run dev`
+3. Make changes
+4. Test functionality
+5. Check for TypeScript errors
+6. Commit changes
+
+## Important Notes
+
+- **DO NOT** edit shadcn/ui components directly unless customizing
+- **ALWAYS** run `db:push` and `db:generate` after schema changes
+- **ALWAYS** validate input on both client and server
+- **NEVER** commit `.env` files
+- **USE** TypeScript types from Prisma and tRPC
+- Import from `server/src/lib/trpc` and `server/src/lib/context` (not from `server/src/`)
+
+## Adding New Features Checklist
+
+- [ ] Update Prisma schema
+- [ ] Run `db:push` and `db:generate`
+- [ ] Create Zod validation schemas
+- [ ] Create tRPC router
+- [ ] Register router in main router
+- [ ] Create React component
+- [ ] Use tRPC hooks in component
+- [ ] Add UI with shadcn/ui components
+- [ ] Test CRUD operations
+- [ ] Handle loading and error states
+
+## Package Manager
+
+- Use `pnpm` for all package management
+- Run `pnpm install` to install dependencies
+- Run `pnpm add <package>` to add new packages
+
+## Authentication (Future)
+
+This boilerplate is designed to be extended with authentication. When adding auth:
+
+- Update context to include user session
+- Create protected procedures
+- Add auth middleware
+- Update frontend to handle auth state
+
+## Performance Considerations
+
+- Use Prisma's `select` to fetch only needed fields
+- Implement pagination for large datasets
+- Use React.memo for expensive components
+- Optimize images and assets
+- Use proper indexes in database
+
+## Security Best Practices
+
+- Always validate and sanitize input
+- Use environment variables for secrets
+- Implement rate limiting (future)
+- Use HTTPS in production
+- Keep dependencies updated
+- Follow OWASP guidelines
+
