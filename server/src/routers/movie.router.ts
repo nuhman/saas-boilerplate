@@ -1,4 +1,4 @@
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure } from "../lib/trpc";
 import {
   createMovieSchema,
   updateMovieSchema,

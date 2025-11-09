@@ -1,0 +1,26 @@
+{
+    "name": "react-trpc-fastify-boilerplate",
+    "version": "1.0.0",
+    "description": "Full-stack boilerplate with React, tRPC, Fastify, Prisma, and PostgreSQL",
+    "scripts": {
+      "install:all": "cd server && npm install && cd ../client && npm install",
+      "dev": "concurrently \"cd server && npm run dev\" \"cd client && npm run dev\"",
+      "build": "cd server && npm run build && cd client && npm run build",
+      "setup": "node setup.js"
+    },
+    "keywords": [
+      "react",
+      "trpc",
+      "fastify",
+      "prisma",
+      "postgresql",
+      "typescript",
+      "boilerplate",
+      "full-stack"
+    ],
+    "author": "nuhman",
+    "license": "MIT",
+    "devDependencies": {
+      "concurrently": "^8.2.2"
+    }
+}

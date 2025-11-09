@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 .pnpm-store/
-pnpm-lock.yaml
 
+# Environment variables
 .env
 .env.local
 .env.*.local
@@ -10,8 +10,6 @@ pnpm-lock.yaml
 # OS files
 .DS_Store
 Thumbs.db
-
-/src/generated/prisma
 
 # IDE
 .vscode/
