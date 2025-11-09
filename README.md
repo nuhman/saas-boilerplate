@@ -12,6 +12,7 @@ Full-stack boilerplate featuring React, tRPC, Fastify, Prisma, and PostgreSQL (N
 -  **Tailwind CSS** + **shadcn/ui**   
 -  **React Query** - Data fetching  
 -  **Zod** - Validation  
+-  **Better-Auth** - Authentication (email/password + optional social login)
 
 ## Prerequisites
 
@@ -50,6 +51,8 @@ After running the setup script:
 DATABASE_URL="postgresql://username:password@your-neon-db.neon.tech/dbname?sslmode=require"
 PORT=3000
 CLIENT_URL="http://localhost:5173"
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
 ```
 
 2. **Set up the database:**
@@ -98,6 +101,8 @@ Edit `server/.env` and add your Neon database URL:
 DATABASE_URL="postgresql://username:password@your-neon-db.neon.tech/dbname?sslmode=require"
 PORT=3000
 CLIENT_URL="http://localhost:5173"
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
 ```
 
 **Client:**
@@ -189,14 +194,22 @@ The boilerplate includes a complete **Movie Watchlist** example demonstrating:
 **Backend:**
 
 - `server/src/router.ts` - Main tRPC router
+- `server/src/index.ts` - Fastify server + auth route mounting
 - `server/src/routers/movie.router.ts` - Example CRUD router
+- `server/src/routers/auth.router.ts` - Auth-related tRPC procedures
 - `server/src/schemas/movie.schema.ts` - Zod validation schemas
 - `server/prisma/schema.prisma` - Database schema
+- `server/src/lib/auth.ts` - Better-Auth configuration
+- `server/src/lib/context.ts` - tRPC context (injects `user` and `session`)
 
 **Frontend:**
 
 - `client/src/lib/trpc.ts` - tRPC React hooks
+- `client/src/lib/auth-client.ts` - Better-Auth client (`useSession`, `signIn`, `signUp`, `signOut`)
 - `client/src/pages/movies/components/WatchList.tsx` - Example component
+- `client/src/pages/Auth.tsx` - Auth page (login/sign up UI)
+- `client/src/components/auth/LoginForm.tsx` - Email + social sign-in
+- `client/src/components/auth/SignUpForm.tsx` - Email sign-up
 
 ## Common Commands
 
@@ -358,12 +371,74 @@ pnpm run db:push
 pnpm run db:generate
 ```
 
-## Adding Authentication (WIP)
+## Authentication
 
-This boilerplate is designed to be extended with authentication. Popular options:
+Built-in authentication is provided via **Better-Auth** with:
 
-- NextAuth.js
-- Clerk
-- Auth0
-- Custom JWT implementation
+- Email + password (with sessions stored in DB)
+- Optional social login (GitHub; enable via env vars)
+- Server-side `user` and `session` injected into tRPC context
+- Client helpers and hooks for sign in/out and session state
+
+### How it works
+
+- Auth routes are mounted under `/api/auth/*` in the server (`server/src/index.ts`).
+- The tRPC context (`server/src/lib/context.ts`) resolves the current session and exposes `ctx.user` and `ctx.session`.
+- A small auth tRPC router (`server/src/routers/auth.router.ts`) demonstrates:
+  - `auth.getSession` - returns `{ user, session }`
+  - `auth.me` - protected route returning the current user
+
+### Environment variables
+
+In `server/.env`:
+
+```env
+DATABASE_URL="postgresql://..."
+PORT=3000
+CLIENT_URL="http://localhost:5173"
+# Optional social login (GitHub)
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+```
+
+In `client/.env`:
+
+```env
+VITE_API_URL="http://localhost:3000"
+```
+
+### Client usage
+
+- The app uses session-aware routing in `client/src/App.tsx`:
+  - If no session, it renders `AuthPage` (login/sign up).
+  - If authenticated, it shows the Movie Watchlist and a Sign Out button.
+- Use the provided auth client (`client/src/lib/auth-client.ts`):
+
+```tsx
+import { useSession, signIn, signOut, signUp } from "@/lib/auth-client";
+
+function Example() {
+  const { data: session, isPending } = useSession();
+
+  if (isPending) return <div>Loading...</div>;
+  if (!session) {
+    return (
+      <button
+        onClick={() => signIn.email({ email: "you@example.com", password: "password123" })}
+      >
+        Sign In
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      Hello, {session.user.name || session.user.email}
+      <button onClick={() => signOut()}>Sign Out</button>
+    </div>
+  );
+}
+```
+
+To enable GitHub login, set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `server/.env`. The UI in `LoginForm` already includes a GitHub button that will work once the vars are set.
 
