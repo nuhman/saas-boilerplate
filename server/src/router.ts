@@ -1,4 +1,5 @@
 import { publicProcedure, router } from "./trpc";
+import { movieRouter } from "./routers/movie.router";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -23,6 +24,8 @@ export const appRouter = router({
         data: { content: input.content },
       });
     }),
+
+  movie: movieRouter,
 });
 
 export type AppRouter = typeof appRouter;

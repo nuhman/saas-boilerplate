@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "./components/ui/card";
 import { Input } from "./components/ui/input";
+import { MovieWatchlist } from "./pages/movies/components/WatchList";
 
 function App() {
   const [name, setName] = useState("");
@@ -100,6 +101,8 @@ function App() {
           </CardContent>
         </Card>
       </div>
+
+      <MovieWatchlist />
     </div>
   );
 }
